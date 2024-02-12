@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot generator="Robot 7.0 (Python 3.12.1 on win32)" generated="2024-02-12T14:40:57.470609" rpa="false" schemaversion="5">
+<suite id="s1" name="carRental" source="C:\Users\T440p\PycharmProjects\selenium-lab\infotivCarRental\.venv\carRental.robot">
+<kw name="Open rental site and login" owner="carRentalResources" type="SETUP">
+<kw name="Open Browser" owner="SeleniumLibrary">
+<msg time="2024-02-12T14:40:57.733528" level="INFO">Opening browser 'Chrome' to base url 'https://rental4.infotiv.net/'.</msg>
+<arg>${rental_site_url}</arg>
+<arg>${browser}</arg>
+<doc>Opens a new browser instance to the optional ``url``.</doc>
+<status status="PASS" start="2024-02-12T14:40:57.733528" elapsed="2.173363"/>
+</kw>
+<kw name="Maximize Browser Window" owner="SeleniumLibrary">
+<doc>Maximizes current browser window.</doc>
+<status status="PASS" start="2024-02-12T14:40:59.906891" elapsed="0.111097"/>
+</kw>
+<kw name="Input Text" owner="SeleniumLibrary">
+<msg time="2024-02-12T14:41:00.019002" level="INFO">Typing text 'kungen@slottet.se' into text field '//input[@id='email']'.</msg>
+<arg>//input[@id='email']</arg>
+<arg>${user_email}</arg>
+<doc>Types the given ``text`` into the text field identified by ``locator``.</doc>
+<status status="PASS" start="2024-02-12T14:41:00.017988" elapsed="0.120934"/>
+</kw>
+<kw name="Input Password" owner="SeleniumLibrary">
+<msg time="2024-02-12T14:41:00.139918" level="INFO">Typing password into text field '//input[@id='password']'.</msg>
+<msg time="2024-02-12T14:41:00.178895" level="INFO">Temporally setting log level to: NONE</msg>
+<arg>//input[@id='password']</arg>
+<arg>${user_password}</arg>
+<doc>Types the given password into the text field identified by ``locator``.</doc>
+<status status="PASS" start="2024-02-12T14:41:00.138922" elapsed="0.086947"/>
+</kw>
+<kw name="Click Button" owner="SeleniumLibrary">
+<msg time="2024-02-12T14:41:00.226869" level="INFO">Clicking button '//button[@id='login']'.</msg>
+<arg>//button[@id='login']</arg>
+<doc>Clicks the button identified by ``locator``.</doc>
+<status status="PASS" start="2024-02-12T14:41:00.226869" elapsed="0.335088"/>
+</kw>
+<kw name="Wait Until Page Contains" owner="SeleniumLibrary">
+<arg>You are signed in as ${user_first_name}</arg>
+<arg>timeout=5s</arg>
+<doc>Waits until ``text`` appears on the current page.</doc>
+<status status="PASS" start="2024-02-12T14:41:00.561957" elapsed="0.014971"/>
+</kw>
+<doc>Open rental site with Chrome and log in on existing user account</doc>
+<status status="PASS" start="2024-02-12T14:40:57.732528" elapsed="2.844400"/>
+</kw>
+<test id="s1-t1" name="Login to" line="8">
+<kw name="Login" owner="carRentalResources">
+<kw name="Click Button" owner="SeleniumLibrary">
+<msg time="2024-02-12T14:41:00.577926" level="INFO">Clicking button '//button[@id='continue']'.</msg>
+<arg>//button[@id='continue']</arg>
+<doc>Clicks the button identified by ``locator``.</doc>
+<status status="PASS" start="2024-02-12T14:41:00.577926" elapsed="0.543440"/>
+</kw>
+<status status="PASS" start="2024-02-12T14:41:00.576928" elapsed="0.544438"/>
+</kw>
+<status status="PASS" start="2024-02-12T14:41:00.576928" elapsed="0.544438"/>
+</test>
+<doc>Car</doc>
+<status status="PASS" start="2024-02-12T14:40:57.471608" elapsed="3.650760"/>
+</suite>
+<statistics>
+<total>
+<stat pass="1" fail="0" skip="0">All Tests</stat>
+</total>
+<tag>
+</tag>
+<suite>
+<stat pass="1" fail="0" skip="0" id="s1" name="carRental">carRental</stat>
+</suite>
+</statistics>
+<errors>
+</errors>
+</robot>
