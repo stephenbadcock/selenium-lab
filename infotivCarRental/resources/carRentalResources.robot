@@ -1,6 +1,7 @@
 *** Settings ***
 Documentation    Resources for Infotiv car rental site tests
 Library    SeleniumLibrary
+Library    Collections
 
 *** Variables ***
 ${rental_site_url}    https://rental4.infotiv.net/
@@ -18,11 +19,15 @@ ${card_holder}    Carl XVI Gustaf Folke Hubertus Bernadotte
 ${card_expire_month}    11
 ${card_expire_year}    2025
 ${card_cvc}    888
+${car_seating_capacity}    7
+@{expected_license_numbers}
+@{actual_license_numbers}
 
 *** Keywords ***
 Setup test environment
     [Documentation]    Open rental site with Chrome and log in on existing user account
 
+    Set Selenium Speed    0
     Open Browser    ${rental_site_url}    ${browser}
     Maximize Browser Window
     Wait Until Element Is Visible    //input[@id='email']
@@ -32,15 +37,15 @@ Setup test environment
 
 User is logged in and on date selection page
     [Documentation]    Check if user is logged in and on date selection page
-    [Tags]    VG_test
+    [Tags]    VG_test    date-selection
     
     Wait Until Page Contains    You are signed in as ${user_first_name}
     Wait Until Element Is Visible    //input[@id='start']
 
-User selects rental period and car
-    [Documentation]    Fill in data needed to rent a car (5-seat Audi TT)
-    [Tags]    VG_test    user-input    navigation    booking
-    [Arguments]    ${start_date}    ${end_date}    ${car_id}
+User selects rental period
+    [Documentation]    Date selection - Choose rent period: ${start_date} - ${end_date}
+    [Tags]    VG_test    user-input    navigation    booking    date-selection
+    [Arguments]    ${start_date}    ${end_date}
 
     Click Element    //input[@id='start']
     Input Text    //input[@id='start']    text=${start_date}
@@ -48,12 +53,17 @@ User selects rental period and car
     Input Text    //input[@id='end']    text=${end_date}
     Click Button    //button[@id='continue']
 
+User selects car
+    [Documentation]    Car Selection - Fill in data needed to rent a ${car_model} with ID: ${car_id}
+    [Tags]    VG_test    user-input    navigation    booking    car-selection
+    [Arguments]    ${car_id}
+
     Wait Until Element Is Visible    //input[@id='${car_id}']
     Click Element    //input[@id='${car_id}']
 
 User submits credit card info
-    [Documentation]    Fill in credit card info and click 'Confirm'
-    [Tags]    VG_test    user-input    navigation    booking
+    [Documentation]    Confirm Booking - Fill in credit card info and click 'Confirm'
+    [Tags]    VG_test    user-input    navigation    booking    confirm-booking
 
     Wait Until Element Is Visible    //input[@id='cardNum']
     Click Element    //input[@id='cardNum']
@@ -67,12 +77,46 @@ User submits credit card info
     Click Button    //button[@id='confirm']
     
 A confirmation of the booking is shown    
-    [Documentation]    A confirmation of the booking is shown
-    [Tags]    VG_test    booking
+    [Documentation]    Successful Booking - A confirmation of the booking is shown
+    [Tags]    VG_test    booking    successful-booking
 
     Wait Until Page Contains    A ${car_model} is now ready for pickup ${pickup_date}
+
+User filters cars by seating capacity
+    [Documentation]    saves list of license plates for cars with seating capacity = ${car_seating_capacity} and user filters cars
+    [Tags]    VG_test    booking    car-selection
+    [Arguments]    ${car_seating_capacity}
+
+    ${plate_elements}=    Get Webelements    xpath=//input[contains(@id, "pass${car_seating_capacity}")]/../input[@name="licenseNumber"]
+
+    FOR    ${element}    IN    @{plate_elements}
+        ${license_number}=    Get Element Attribute    ${element}    value
+        Append To List    ${expected_license_numbers}    ${license_number}
+        #Log To Console    ${plate}
+    END
+
+    Wait Until Element Is Visible    //div[@id='ms-list-2']//button[@type='button']
+    Click Button    //div[@id='ms-list-2']//button[@type='button']
+    Click Element   css=[data-search-term="${car_seating_capacity}"]
+    Click Button    //div[@id='ms-list-2']//button[@type='button']
+
+All available cars with selected seating capacity is shown
+    [Documentation]    Compares expected cars with seating capacity = ${car_seating_capacity} to filtered
+    [Tags]    VG_test    booking    car-selection
+
+    Wait Until Page Contains Element    //div[@id='carSelection']
+    ${plate_elements}=    Get Webelements    xpath=//input[@name="licenseNumber"]
+
+    FOR    ${plate}    IN    @{plate_elements}
+        ${license_number}=    Get Element Attribute    ${plate}    value
+        Append To List    ${actual_license_numbers}    ${license_number}
+        Log    ${license_number}
+    END
+
+    Lists Should Be Equal    ${actual_license_numbers}    ${expected_license_numbers}
 
 Close test environment
     [Documentation]    Close Browser
 
+    Click Button    //button[@id='logout']
     Close Browser
