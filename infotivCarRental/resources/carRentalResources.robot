@@ -2,6 +2,7 @@
 Documentation    Resources for Infotiv car rental site tests
 Library    SeleniumLibrary
 Library    Collections
+Library    DateTime
 
 *** Variables ***
 ${rental_site_url}    https://rental4.infotiv.net/
@@ -11,10 +12,12 @@ ${valid_user_password}    123456
 ${invalid_user_email}    drottningen@slottet.se
 ${invalid_user_password}    abcdef
 ${user_first_name}    Carl
-${start_date}    0310
-${end_date}    0315
-${pickup_date}    2024-03-10
-${car_id}    bookTTpass5
+${days_until_pickup}    1
+#${days_until_pickup2}    2
+${days_until_return}    8
+${pickup_date}
+${license_number}    DHW439
+${license_number2}    CEA328
 ${car_model}    Audi TT
 ${card_number}    1234123412341234
 ${card_holder}    Carl XVI Gustaf Folke Hubertus Bernadotte
@@ -52,24 +55,28 @@ User logs in with valid credentials
     Wait Until Page Contains    You are signed in as ${user_first_name}
     
 User selects rental period
-    [Documentation]    Date selection - Choose rent period: ${start_date} - ${end_date}
+    [Documentation]    Date selection - Choose rent period
     [Tags]    VG_test    user-input    booking    date-selection
-    [Arguments]    ${start_date}    ${end_date}
+    [Arguments]    ${days_until_pickup}    ${days_until_return}
+
+    ${pickup_date}=    Get Current Date    increment=${days_until_pickup} days    result_format=%Y-%m-%d
+    ${start_date_MMDD}=    Convert Date    ${pickup_date}    result_format=%m%d
+    ${end_date_MMDD}=    Get Current Date    increment=${days_until_return} days    result_format=%m%d
 
     Wait Until Element Is Visible    //input[@id='start']
     Click Element    //input[@id='start']
-    Input Text    //input[@id='start']    ${start_date}
+    Input Text    //input[@id='start']    ${start_date_MMDD}
     Click Element    //input[@id='end']
-    Input Text    //input[@id='end']    ${end_date}
+    Input Text    //input[@id='end']    ${end_date_MMDD}
     Click Button    //button[@id='continue']
 
 User selects car
-    [Documentation]    Car Selection - Fill in data needed to rent a ${car_model} with ID: ${car_id}
+    [Documentation]    Car Selection - Fill in data needed to rent a ${car_model} with license number ${license_number}
     [Tags]    VG_test    user-input    booking    car-selection
-    [Arguments]    ${car_id}
+    [Arguments]    ${license_number}
 
-    Wait Until Element Is Visible    //input[@id='${car_id}']
-    Click Element    //input[@id='${car_id}']
+    Wait Until Element Is Visible    //input[@value='${license_number}']/../input[@value='Book']
+    Click Element    //input[@value='${license_number}']/../input[@value='Book']
 
 User submits credit card info
     [Documentation]    Confirm Booking - Fill in credit card info and click 'Confirm'
@@ -104,17 +111,40 @@ User logs in with invalid credentials
     Click Button    //button[@id='login']
 
 An error message appears to the left of the buttons
-    [Documentation]    Header - Checks for error text: "If the user inserts the wrong information a error message appears to the left of the buttons."
+    [Documentation]    Header - Checks for error text: 'If the user inserts the wrong information a error message appears to the left of the buttons.'
     [Tags]    VG_test    header    login
 
     Wait Until Element Contains    //label[@id='signInError']    Wrong e-mail or password
+
+An error message appears on the page
+    [Documentation]    Car Selection - If the user isn't signed in an error message appears on the page
+    [Tags]    VG_test    booking    car-selection
+
+    Alert Should Be Present    You need to be logged in to continue.
+
+User cancels booking on 'My page'
+    [Documentation]    My Page - User completes booking and goes to 'My page' and clicks 'Cancel booking' for the same booking
+    [Tags]    VG_test    cancellation    my-page
+    [Arguments]    ${license_number}
+
+    Click Button    //button[@id='mypage']
+    Wait Until Element Is Visible    xpath=//input[@value='${license_number}']/../button[text()='Cancel booking']
+    Click Button    xpath=//input[@value='${license_number}']/../button[text()='Cancel booking']
+    Handle Alert
+
+A confirmation of the cancellation is shown
+    [Documentation]    My Page - User completes booking and goes to 'My page' and clicks 'Cancel booking' for the same booking
+    [Tags]    VG_test    cancellation    my-page
+    [Arguments]    ${license_number}
+
+    Wait Until Page Contains    Your car: ${license_number} has been Returned
 
 User filters cars by seating capacity
     [Documentation]    Car Selection - saves license plates for cars with seating capacity = ${car_seating_capacity} and then filters cars
     [Tags]    VG_test    booking    car-selection
     [Arguments]    ${car_seating_capacity}
 
-    ${plate_elements}=    Get Webelements    xpath=//input[contains(@id, "pass${car_seating_capacity}")]/../input[@name="licenseNumber"]
+    ${plate_elements}=    Get Webelements    xpath=//input[contains(@id, 'pass${car_seating_capacity}')]/../input[@name='licenseNumber']
 
     FOR    ${element}    IN    @{plate_elements}
         ${license_number}=    Get Element Attribute    ${element}    value
@@ -124,7 +154,7 @@ User filters cars by seating capacity
 
     Wait Until Element Is Visible    //div[@id='ms-list-2']//button[@type='button']
     Click Button    //div[@id='ms-list-2']//button[@type='button']
-    Click Element   css=[data-search-term="${car_seating_capacity}"]
+    Click Element   css=[data-search-term='${car_seating_capacity}']
     Click Button    //div[@id='ms-list-2']//button[@type='button']
 
 All available cars with selected seating capacity is shown
@@ -133,7 +163,7 @@ All available cars with selected seating capacity is shown
     [Arguments]    ${expected_license_numbers}
 
     Wait Until Page Contains Element    //div[@id='carSelection']
-    ${plate_elements}=    Get Webelements    xpath=//input[@name="licenseNumber"]
+    ${plate_elements}=    Get Webelements    xpath=//input[@name='licenseNumber']
 
     FOR    ${plate}    IN    @{plate_elements}
         ${license_number}=    Get Element Attribute    ${plate}    value
@@ -143,28 +173,22 @@ All available cars with selected seating capacity is shown
 
     Lists Should Be Equal    ${actual_license_numbers}    ${expected_license_numbers}
 
-A book button is shown besides all available cars
+A book button is shown next to all available cars
     [Documentation]    Car Selection - if a book button is visible for all filtered cars
     [Tags]    VG_test    booking    car-selection
 
     ${carRow_elements}=    Get Webelements    css:.carRow
     ${carRow_count}=    Get Length     ${carRow_elements}
 
-    ${status}=    Run Keyword And Return Status    Page Should Contain Element    xpath=//input[@value="book"]    ${carRow_count}
+    ${status}=    Run Keyword And Return Status    Page Should Contain Element    xpath=//input[@value='book']    ${carRow_count}
     
     IF    ${status}
-        Log    The page's got the expected amount of elements with xpath=//input[@value="book"]
+        Log    The page's got the expected amount of elements with xpath=//input[@value='book']
     ELSE
-        ${book_elements}=    Get Webelements    xpath=//input[@value="book"]
+        ${book_elements}=    Get Webelements    xpath=//input[@value='book']
         ${book_elements_count}=    Get Length     ${book_elements}
-        Fail    Found ${book_elements_count} elements with xpath=//input[@value="book"] instead of ${carRow_count}
+        Fail    Found ${book_elements_count} elements with xpath=//input[@value='book'] instead of ${carRow_count}
     END
-
-User cancels booking on 'My page'
-    [Documentation]    My Page - User completes booking and goes to 'My page' and clicks 'Cancel booking' for the same booking
-    [Tags]    VG_test    booking    my-page
-
-    Click Button    //button[@id='mypage']
 
 Close test environment
     [Documentation]    Close Browser
