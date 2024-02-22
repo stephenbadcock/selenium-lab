@@ -24,18 +24,24 @@ ${card_holder}    Carl XVI Gustaf Folke Hubertus Bernadotte
 ${card_expire_month}    11
 ${card_expire_year}    2025
 ${card_cvc}    888
-#${car_make}    Audi
-${car_seating_capacity}    7
+@{two_car_makes}    Audi    Opel
+@{two_car_seating_capacities}    2    6
+@{zero_car_makes}
+@{zero_car_seating_capacities}
 @{expected_license_numbers}
-@{actual_license_numbers}
 
 *** Keywords ***
 Setup test environment
-    [Documentation]    Open ${rental_site_url} with ${browser} and maximize browser window
+    [Documentation]    Sets Selenium speed, opens ${browser} and maximizes browser window
 
     Set Selenium Speed    0
-    Open Browser    ${rental_site_url}    ${browser}
+    Open Browser    browser=${browser}
     Maximize Browser Window
+
+Initialize Test
+    [Documentation]    Start all test cases from ${rental_site_url}
+
+    Go To    ${rental_site_url}
 
 User is on date selection page
     [Documentation]    Date selection - Checks if user is on date selection page and XXX
@@ -100,6 +106,7 @@ A confirmation of the booking is shown
     [Arguments]    ${car_model}    ${pickup_date}
 
     Wait Until Page Contains    A ${car_model} is now ready for pickup ${pickup_date}
+    Click Button    //button[@id='logout']
     
 User logs in with invalid credentials
     [Documentation]    Header - User tries to login in with invalid credentials
@@ -138,32 +145,59 @@ A confirmation of the cancellation is shown
     [Arguments]    ${license_number}
 
     Wait Until Page Contains    Your car: ${license_number} has been Returned
+    Click Button    //button[@id='logout']
 
-User filters cars by seating capacity
-    [Documentation]    Car Selection - saves license plates for cars with seating capacity = ${car_seating_capacity} and then filters cars
+User filters cars by selected criteria
+    [Documentation]    Car Selection - saves license plates for cars with selected makes and seating capacities, then filters cars
     [Tags]    VG_test    booking    car-selection
-    [Arguments]    ${car_seating_capacity}
+    [Arguments]    ${car_makes}    ${car_seating_capacities}
 
-    ${plate_elements}=    Get Webelements    xpath=//input[contains(@id, 'pass${car_seating_capacity}')]/../input[@name='licenseNumber']
+    FOR    ${make}    IN     @{car_makes}
+        ${make_elements}=    Get Webelements    xpath=//input[@value='${make}']/../input[@name='licenseNumber']
 
-    FOR    ${element}    IN    @{plate_elements}
-        ${license_number}=    Get Element Attribute    ${element}    value
-        Append To List    ${expected_license_numbers}    ${license_number}
-        #Log To Console    ${plate}
+        FOR    ${plate}    IN    @{make_elements}
+            ${license_number1}=    Get Element Attribute    ${plate}    value
+
+            Run Keyword If    '${license_number1}' not in @{expected_license_numbers}    Append To List    ${expected_license_numbers}    ${license_number1}
+            Log    ${expected_license_numbers}
+        END
+    END
+
+    FOR    ${capacity}    IN     @{car_seating_capacities}
+        ${plate_elements}=    Get Webelements    xpath=//input[contains(@id, 'pass${capacity}')]/../input[@name='licenseNumber']
+
+        FOR    ${plate}    IN    @{plate_elements}
+            ${license_number}=    Get Element Attribute    ${plate}    value
+
+            Run Keyword If    '${license_number}' not in @{expected_license_numbers}    Append To List    ${expected_license_numbers}    ${license_number}
+            Log    ${expected_license_numbers}
+        END
+    END
+
+    Wait Until Element Is Visible    //div[@id='ms-list-1']//button[@type='button']
+    Click Button    //div[@id='ms-list-1']//button[@type='button']
+
+    FOR    ${make}    IN     @{car_makes}
+        Click Element   css=[data-search-term='${make.lower()}']
     END
 
     Wait Until Element Is Visible    //div[@id='ms-list-2']//button[@type='button']
     Click Button    //div[@id='ms-list-2']//button[@type='button']
-    Click Element   css=[data-search-term='${car_seating_capacity}']
+
+    FOR    ${capacity}    IN     @{car_seating_capacities}
+        Click Element   css=[data-search-term='${capacity}']
+    END
+
     Click Button    //div[@id='ms-list-2']//button[@type='button']
 
-All available cars with selected seating capacity is shown
-    [Documentation]    Car Selection - Compares expected cars with seating capacity = ${car_seating_capacity} to filtered
+All available cars with selected filtering is shown
+    [Documentation]    Car Selection - Compares expected cars with selected seating capacities to filtered
     [Tags]    VG_test    booking    car-selection
-    [Arguments]    ${expected_license_numbers}
+    [Arguments]    @{expected_license_numbers}
 
     Wait Until Page Contains Element    //div[@id='carSelection']
     ${plate_elements}=    Get Webelements    xpath=//input[@name='licenseNumber']
+    ${actual_license_numbers}=    Create List
 
     FOR    ${plate}    IN    @{plate_elements}
         ${license_number}=    Get Element Attribute    ${plate}    value
